@@ -19,11 +19,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
+//        String sql="create table h1(id TEXT primary key NOT NULL , name TEXT, age TEXT, company TEXT, skills TEXT)";
+        DBUtil.createTable(db,Developer.class);
 
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
+//        String sql="drop table if exsit h1";
+        DBUtil.dropTable(db,Developer.class);
     }
 }
