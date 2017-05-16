@@ -89,15 +89,17 @@ class DBUtil {
 
 
     public static String getIDColumnName(Class<?> clz) {
-        Field[] fields=clz.getDeclaredFields();
-        for (Field field : fields) {
-            if (field.isAnnotationPresent(Column.class)){
-                Column column=field.getAnnotation(Column.class);
-                if (column.id()){
-                    String name=column.name();
-                    if (!TextUtil.isValidate(name))
-                        name=field.getName();
-                    return name;
+        if (clz.isAnnotationPresent(Table.class)){
+            Field[] fields=clz.getDeclaredFields();
+            for (Field field : fields) {
+                if (field.isAnnotationPresent(Column.class)){
+                    Column column=field.getAnnotation(Column.class);
+                    if (column.id()){
+                        String name=column.name();
+                        if (!TextUtil.isValidate(name))
+                            name=field.getName();
+                        return name;
+                    }
                 }
             }
         }

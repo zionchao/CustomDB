@@ -14,6 +14,7 @@ public @interface Column {
     boolean id() default false;
     String name() default "";
     ColumnType type() default ColumnType.UNKOWN;
+    boolean autoRefresh() default false;
 
     public enum ColumnType{
         TONE,TMANY,SERIALIZABLE,UNKOWN

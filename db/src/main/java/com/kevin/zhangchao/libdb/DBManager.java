@@ -6,8 +6,10 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import com.kevin.zhangchao.libdb.Utilities.SerializeUtil;
 import com.kevin.zhangchao.libdb.Utilities.TextUtil;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 
 /**
@@ -21,19 +23,22 @@ public class DBManager {
     private final SQLiteOpenHelper mHelper;
     private final SQLiteDatabase mDatabase;
 
-    private DBManager(Context context, SQLiteOpenHelper helper) {
+    private DBManager(Context context) {
         this.context=context;
-        mHelper=helper;
+        mHelper=new DatabaseHelper(context);
         mDatabase=mHelper.getWritableDatabase();
     }
 
-    public static void init(Context context,SQLiteOpenHelper helper){
+    public static void init(Context context){
         if (mInstance==null){
-            mInstance=new DBManager(context,helper);
+            mInstance=new DBManager(context);
         }
     }
 
-    public static DBManager getInstance() {
+    public static DBManager getInstance(Context context) {
+        if (mInstance==null){
+            mInstance=new DBManager(context);
+        }
         return mInstance;
     }
 
@@ -62,9 +67,20 @@ public class DBManager {
                             }
                             //TODO 非常规类型
                             if (type== Column.ColumnType.SERIALIZABLE){
-
+                                byte[]value= SerializeUtil.serialize(field.get(t));
+                                values.put(DBUtil.getColumnName(field),value);
                             }else if(type== Column.ColumnType.TONE){
-
+                                Object tone=field.get(t);
+                                if (column.autoRefresh()){
+                                    newOrUpdate(tone);
+                                }else {
+                                    if (tone.getClass().isAnnotationPresent(Table.class)) {
+                                        String idName = DBUtil.getIDColumnName(tone.getClass());
+                                        Field toneIdField = tone.getClass().getDeclaredField(idName);
+                                        field.setAccessible(true);
+                                        values.put(DBUtil.getColumnName(field), toneIdField.get(tone).toString());
+                                    }
+                                }
                             }else if(type== Column.ColumnType.TMANY){
 
                             }
@@ -73,17 +89,19 @@ public class DBManager {
                 }
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
+            }catch(Exception e){
+                e.printStackTrace();
             }
-//        values.put("id",1);
-            mDatabase.replace(DBUtil.getTableName(Developer.class),null,values);
+            //        values.put("id",1);
+            mDatabase.replace(DBUtil.getTableName(t.getClass()),null,values);
         }
     }
 
     public <T>void delete(T t){
-        String idName=DBUtil.getIDColumnName(t.getClass());
         try {
+            String idName=DBUtil.getIDColumnName(t.getClass());
             //TODO 注解的名称，idName
-            Field field=t.getClass().getField(idName);
+            Field field=t.getClass().getDeclaredField(idName);
             field.setAccessible(true);
             String id= (String) field.get(t);
             mDatabase.delete(DBUtil.getTableName(t.getClass()),idName+"=?",new String[]{id});
@@ -105,19 +123,34 @@ public class DBManager {
                 Field[] fields=clz.getDeclaredFields();
                 for (Field field : fields) {
                     if (field.isAnnotationPresent(Column.class)){
+                        field.setAccessible(true);
                         Class<?> classType=field.getType();
                         if (classType==String.class){
-                            field.set(t,field.get(t));
+                            field.set(t,cursor.getString(cursor.getColumnIndex(DBUtil.getColumnName(field))));
                         }else if (classType==int.class||classType==Integer.class){
-                            field.setInt(t,field.getInt(t));
+                            field.set(t,cursor.getInt(cursor.getColumnIndex(DBUtil.getColumnName(field))));
                         }else{
                             Column column=field.getAnnotation(Column.class);
                             Column.ColumnType columnType=column.type();
                             //TODO
                             if (columnType== Column.ColumnType.SERIALIZABLE){
-
+                               Object object= SerializeUtil.deserialize(cursor.getBlob(cursor.getColumnIndex(DBUtil.getColumnName(field))));
+                                field.set(t,object);
                             }else if (columnType== Column.ColumnType.TONE){
-
+                                String toneId=cursor.getString(cursor.getColumnIndex(DBUtil.getColumnName(field)));
+                                if (!TextUtil.isValidate(toneId))
+                                    continue;
+                                Object tone=null;
+                                if (column.autoRefresh()) {
+                                    tone= queryById(field.getType(),toneId);
+                                } else {
+                                    String idName=DBUtil.getIDColumnName(field.getType());
+                                    tone=field.getType().newInstance();
+                                    Field toneField=tone.getClass().getDeclaredField(idName);
+                                    toneField.setAccessible(true);
+                                    toneField.set(tone,toneId);
+                                }
+                                field.set(t,tone);
                             }else if (columnType== Column.ColumnType.TMANY){
 
                             }
@@ -127,6 +160,8 @@ public class DBManager {
             } catch (InstantiationException e) {
                 e.printStackTrace();
             } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }catch (Exception e) {
                 e.printStackTrace();
             }
         }

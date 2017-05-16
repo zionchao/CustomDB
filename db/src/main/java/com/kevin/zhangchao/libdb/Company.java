@@ -6,16 +6,22 @@ import java.util.ArrayList;
  * Created by zhangchao_a on 2017/5/15.
  */
 
+@Table(name="company")
 public class Company {
-
+    @Column(id = true)
     private String id;
+    @Column
     private String name;
+    @Column
     private String url;
+    @Column
     private String tel;
+    @Column
     private String address;
-    private String group;
 
-    private ArrayList<Developer> developers;
+//    private String group;
+//
+//    private ArrayList<Developer> developers;
 
     public String getId() {
         return id;
@@ -57,19 +63,13 @@ public class Company {
         this.address = address;
     }
 
-    public String getGroup() {
-        return group;
-    }
+    @Override
+    public String toString() {
+        return "id="+id+":"+
+                "name="+name+":"+
+                "url="+url+":"+
+                "tel="+tel+":"+
+                "address="+address;
 
-    public void setGroup(String group) {
-        this.group = group;
-    }
-
-    public ArrayList<Developer> getDevelopers() {
-        return developers;
-    }
-
-    public void setDevelopers(ArrayList<Developer> developers) {
-        this.developers = developers;
     }
 }
