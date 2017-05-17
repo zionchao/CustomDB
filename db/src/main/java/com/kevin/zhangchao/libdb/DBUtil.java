@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase;
 import com.kevin.zhangchao.libdb.Utilities.TextUtil;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 
 /**
  * Created by zhangchao_a on 2017/5/15.
@@ -12,18 +13,54 @@ import java.lang.reflect.Field;
 
 class DBUtil {
 
-//  String sql="create table h1(id TEXT primary key NOT NULL , name TEXT, age TEXT, company TEXT, skills TEXT)";
+    public static final String PK1 = "pk1";
+    public static final String PK2 = "pk2";
+
+    //  String sql="create table h1(id TEXT primary key NOT NULL , name TEXT, age TEXT, company TEXT, skills TEXT)";
     public static void createTable(SQLiteDatabase db, Class<?> clz) {
-        StringBuilder builder=new StringBuilder();
-        Field[] fields=clz.getDeclaredFields();
-        for (int i=0;i<fields.length;i++){
-            Field field=fields[i];
-            builder.append(getOneColumnStmt(field));
-            if (i!=fields.length-1)
-                builder.append(",");
+//        StringBuilder builder=new StringBuilder();
+//        Field[] fields=clz.getDeclaredFields();
+//        for (int i=0;i<fields.length;i++){
+//            Field field=fields[i];
+//            builder.append(getOneColumnStmt(field));
+//            if (i!=fields.length-1)
+//                builder.append(",");
+//        }
+//        String sql="create table "+getTableName(clz)+"("+builder+")";
+//        db.execSQL(sql);
+        ArrayList<String> stmts=getCreateTableStmt(clz);
+        for (String stmt:stmts) {
+            db.execSQL(stmt);
         }
-        String sql="create table "+getTableName(clz)+"("+builder+")";
-        db.execSQL(sql);
+    }
+
+    public static ArrayList<String> getCreateTableStmt(Class<?> clz){
+        StringBuilder mColumnStmts=new StringBuilder();
+        ArrayList<String> stmts=new ArrayList<>();
+        if (clz.isAnnotationPresent(Table.class)){
+            Field[] fields=clz.getDeclaredFields();
+            for (int i=0;i<fields.length;i++){
+                Field field=fields[i];
+                if (field.isAnnotationPresent(Column.class)){
+                    if (field.getAnnotation(Column.class).type()==Column.ColumnType.TMANY){
+                        stmts.add("create table "+getAsscociationTableName(clz,field.getName())+ "(" + PK1 + " TEXT, " + PK2
+                                + " TEXT)");
+                    }
+                    mColumnStmts.append(getOneColumnStmt(field));
+                    mColumnStmts.append(",");
+                }
+
+            }
+            if (mColumnStmts.length()>0){
+                mColumnStmts.delete(mColumnStmts.length()-2,mColumnStmts.length());
+            }
+            stmts.add("create table "+getTableName(clz)+"("+mColumnStmts+")");
+        }
+        return stmts;
+    }
+
+    public static String getAsscociationTableName(Class<?> clz, String association) {
+        return getIDColumnName(clz)+"_"+association;
     }
 
     public static String getOneColumnStmt(Field field){
@@ -46,7 +83,7 @@ class DBUtil {
                 if (columnType== Column.ColumnType.TONE){
                     type=" TEXT ";
                 }else if (columnType== Column.ColumnType.TMANY){
-
+                    //一对多，新建一张表
                 }else if(columnType== Column.ColumnType.SERIALIZABLE){
                     type=" BLOB ";
                 }
@@ -61,10 +98,30 @@ class DBUtil {
     }
 
     public static void dropTable(SQLiteDatabase db, Class<?> clz) {
-        String sql="drop table if exists  "+getTableName(clz);
-        db.execSQL(sql);
+//        String sql="drop table if exists  "+getTableName(clz);
+//        db.execSQL(sql);
+        ArrayList<String> stmts=getDropTableStatms(clz);
+        for (String stmt : stmts) {
+            db.execSQL(stmt);
+        }
     }
 
+    public static ArrayList<String> getDropTableStatms(Class<?> clz){
+        ArrayList<String> stmts=new ArrayList<>();
+        if (clz.isAnnotationPresent(Table.class)){
+            Field[] fields=clz.getDeclaredFields();
+            for (int i=0;i<fields.length;i++){
+                Field field=fields[i];
+                if (field.isAnnotationPresent(Column.class)){
+                    if (field.getAnnotation(Column.class).type()==Column.ColumnType.TMANY){
+                        stmts.add("drop table if exists "+getAsscociationTableName(clz,field.getName()));
+                    }
+                }
+            }
+            stmts.add("drop table if exists "+getTableName(clz));
+        }
+        return stmts;
+    }
 
     public static String getTableName(Class<?> clz) {
         if (clz.isAnnotationPresent(Table.class)){

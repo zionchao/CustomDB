@@ -11,6 +11,9 @@ import com.kevin.zhangchao.libdb.Utilities.TextUtil;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by zhangchao_a on 2017/5/15.
@@ -48,6 +51,9 @@ public class DBManager {
             Field[] fields=t.getClass().getDeclaredFields();
             ContentValues values=new ContentValues();
             try {
+                Field idField=t.getClass().getDeclaredField(DBUtil.getIDColumnName(t.getClass()));
+                idField.setAccessible(true);
+                String idValue= (String) idField.get(t);
                 for (Field field : fields) {
                     if (field.isAnnotationPresent(Column.class)){
                         field.setAccessible(true);
@@ -82,7 +88,24 @@ public class DBManager {
                                     }
                                 }
                             }else if(type== Column.ColumnType.TMANY){
-
+                                List<Object> tmany= (List<Object>) field.get(t);
+                                mDatabase.delete(DBUtil.getAsscociationTableName(t.getClass(),field.getName()),
+                                        DBUtil.PK1+"=?",new String[]{idValue});
+                                if (tmany!=null){
+                                    ContentValues assciationValues=new ContentValues();
+                                    for (Object obj:tmany){
+                                        if (column.autoRefresh()){
+                                            newOrUpdate(obj);
+                                        }
+                                        assciationValues.clear();
+                                        assciationValues.put(DBUtil.PK1,idValue);
+                                        String idName = DBUtil.getIDColumnName(obj.getClass());
+                                        Field tmanyIdField = obj.getClass().getDeclaredField(idName);
+                                        field.setAccessible(true);
+                                        assciationValues.put(DBUtil.PK2,tmanyIdField.get(obj).toString());
+                                        mDatabase.replace(DBUtil.getAsscociationTableName(t.getClass(),field.getName()),null,assciationValues);
+                                    }
+                                }
                             }
                         }
                     }
@@ -152,7 +175,27 @@ public class DBManager {
                                 }
                                 field.set(t,tone);
                             }else if (columnType== Column.ColumnType.TMANY){
-
+                                Class realtedClass= (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+                                Cursor tmanyCursor=mDatabase.rawQuery("select * from "+DBUtil.getAsscociationTableName(clz,field.getName())+ " where " + DBUtil.PK1 + "=?", new String[]{id});
+                                ArrayList list=new ArrayList();
+                                String tmanyId=null;
+                                Object tmany=null;
+                                while (tmanyCursor.moveToNext()){
+                                    tmanyId=tmanyCursor.getString(tmanyCursor.getColumnIndex(DBUtil.PK2));
+                                    if (column.autoRefresh()){
+                                        tmany=queryById(realtedClass,tmanyId);
+                                    }else{
+                                        tmany=realtedClass.newInstance();
+                                        String idName=DBUtil.getIDColumnName(realtedClass);
+                                        Field idField=realtedClass.getDeclaredField(idName);
+                                        idField.setAccessible(true);
+                                        idField.set(tmany,tmanyId);
+                                    }
+                                    list.add(tmany);
+                                }
+                                if (!TextUtil.isValidate(list))
+                                    continue;
+                                field.set(t,list);
                             }
                         }
                     }
