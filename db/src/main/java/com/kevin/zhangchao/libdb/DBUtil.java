@@ -162,4 +162,15 @@ class DBUtil {
         }
         return null;
     }
+
+    public static ArrayList<Field> getForeignFields(Field[] mColumnFields) {
+        Column column=null;
+        ArrayList<Field> fields=new ArrayList<>();
+        for (Field field: mColumnFields) {
+            column=field.getAnnotation(Column.class);
+            if (column.type()== Column.ColumnType.TMANY)
+                fields.add(field);
+        }
+        return fields;
+    }
 }

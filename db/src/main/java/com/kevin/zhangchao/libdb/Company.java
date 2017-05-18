@@ -20,8 +20,8 @@ public class Company {
     private String address;
 
 //    private String group;
-//
-//    private ArrayList<Developer> developers;
+    @Column(type= Column.ColumnType.TMANY)
+    private ArrayList<Developer> developers;
 
     public String getId() {
         return id;
@@ -61,6 +61,14 @@ public class Company {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public ArrayList<Developer> getDevelopers() {
+        return developers;
+    }
+
+    public void setDevelopers(ArrayList<Developer> developers) {
+        this.developers = developers;
     }
 
     @Override

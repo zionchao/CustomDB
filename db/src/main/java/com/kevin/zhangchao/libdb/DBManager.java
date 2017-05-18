@@ -52,7 +52,7 @@ public class DBManager {
 
     public <T> BaseDao<T> getDao(Class<T> clz){
         if (mCacheDao.containsKey(clz.getName())){
-            return mCacheDao.get(clz.getSimpleName())
+            return mCacheDao.get(clz.getSimpleName());
         }else{
             BaseDao<T> dao=new BaseDao<>(context,clz,mDatabase);
             mCacheDao.put(clz.getSimpleName(),dao);
