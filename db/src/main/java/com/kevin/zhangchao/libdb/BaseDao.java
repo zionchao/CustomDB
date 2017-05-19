@@ -75,6 +75,8 @@ public class BaseDao<T> {
                                 values.put(DBUtil.getColumnName(field),value);
                             }else if(type== Column.ColumnType.TONE){
                                 Object tone=field.get(t);
+                                if (tone==null)
+                                    continue;
                                 if (column.autoRefresh()){
 //                                    newOrUpdate(tone);
                                     DBManager.getInstance(context).getDao(tone.getClass()).newOrUpdate(tone);
@@ -89,7 +91,7 @@ public class BaseDao<T> {
                             }else if(type== Column.ColumnType.TMANY){
                                 List<Object> tmany= (List<Object>) field.get(t);
                                 delete(DBUtil.getAsscociationTableName(t.getClass(),field.getName()), DBUtil.PK1+"=?",new String[]{idValue});
-                                if (tmany!=null){
+                                if (tmany!=null&&tmany.size()>0){
                                     ContentValues assciationValues=new ContentValues();
                                     for (Object obj:tmany){
                                         if (column.autoRefresh()){

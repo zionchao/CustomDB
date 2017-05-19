@@ -18,9 +18,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         DBManager.getInstance(this);
-        newOrUpdate();
+//        newOrUpdate();
 //        queryById();
-//        deleteById();
+        deleteById();
     }
 
     public void newOrUpdate(){
@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void queryById(){
-        Company company=DBManager.getInstance(this).queryById(Company.class,"00001");
+        Company company=DBManager.getInstance(this).getDao(Company.class).queryById(Company.class,"00001");
         Trace.d(company.toString());
     }
 
@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
     {
         Company company=new Company();
         company.setId("00001");
-        DBManager.getInstance(this).delete(company);
+        DBManager.getInstance(this).getDao(Company.class).delete(company);
         queryById();
     }
 

@@ -20,7 +20,7 @@ public class Company {
     private String address;
 
 //    private String group;
-    @Column(type= Column.ColumnType.TMANY)
+    @Column(type= Column.ColumnType.TMANY,autoRefresh = true)
     private ArrayList<Developer> developers;
 
     public String getId() {
@@ -77,7 +77,8 @@ public class Company {
                 "name="+name+":"+
                 "url="+url+":"+
                 "tel="+tel+":"+
-                "address="+address;
+                "address="+address+
+                "developers="+developers;
 
     }
 }

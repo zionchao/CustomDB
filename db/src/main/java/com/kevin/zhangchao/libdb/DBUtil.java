@@ -60,7 +60,7 @@ class DBUtil {
     }
 
     public static String getAsscociationTableName(Class<?> clz, String association) {
-        return getIDColumnName(clz)+"_"+association;
+        return getTableName(clz)+"_"+association;
     }
 
     public static String getOneColumnStmt(Field field){
